@@ -1,0 +1,1 @@
+next i've to write the eks tf files, then build the pipeline job and then argocd 
