@@ -1,0 +1,36 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation & Markdown
+README.md
+LICENSE
+docs/
+
+# Dependency folders (re-installed inside the container via npm/yarn/pnpm install)
+node_modules
+
+# Local build artifacts & logs
+dist
+build
+coverage
+*.log
+npm-debug.log*
+
+# Environment files (inject secrets at runtime/CI, do not bake into image)
+.env
+.env.*
+
+# Docker files (no need to copy them into the image)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE & Editor files
+.vscode
+.idea

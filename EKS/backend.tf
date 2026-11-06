@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
-    bucket       = "megadevops-terraform-state"
-    key          = "MegaDevOps/Jenkins-EC2-TF/terraform.tfstate"
+    bucket       = "EKS-Terraform-Backend"
+    key          = "MegaDevOps/EKS/terraform.tfstate"
     region       = "ap-south-1"
     encrypt      = true
     use_lockfile = true

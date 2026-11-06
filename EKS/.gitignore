@@ -18,5 +18,4 @@ override.tf.json
 terraform.rc
 
 
-./assets/
 #mention those above before terraform initialization, so that they are not tracked by git.

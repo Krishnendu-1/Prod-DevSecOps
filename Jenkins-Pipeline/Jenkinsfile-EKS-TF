@@ -1,6 +1,6 @@
 properties([
     parameters([
-        string(defaultValue: 'variables.tfvars', description: 'Specify the file name', name: 'File-Name'),
+        string(defaultValue: 'variables.tfvars', description: 'Specify the file name', name: 'Varfile'),
         choice(choices: ['plan', 'apply', 'destroy'], description: 'Select Terraform action', name: 'Terraform-Action')
     ])
 ])
@@ -15,7 +15,7 @@ pipeline {
         }
         stage('Initializing Terraform') {
             steps {
-                withAWS(credentials: 'aws-key', region: 'ap-south-1') {
+                withAWS(credentials: 'accessKey', region: 'ap-south-1') {
                 dir('EKS') {
                     script {
                         sh 'terraform init'
@@ -40,7 +40,7 @@ pipeline {
                 withAWS(credentials: 'accessKey', region: 'ap-south-1') {
                 dir('EKS') {
                     script {
-                        sh "terraform plan -var-file=${params.'File-Name'}"
+                        sh "terraform plan -var-file=${params.Varfile}"
                     }
                 }
                 }
@@ -54,11 +54,11 @@ pipeline {
                     dir('EKS') {
                         script {
                             if (params.'Terraform-Action' == 'plan') {
-                                sh "terraform plan -var-file=${params.'File-Name'}"
+                                sh "terraform plan -var-file=${params.Varfile}"
                             } else if (params.'Terraform-Action' == 'apply') {
-                                sh "terraform apply -auto-approve -var-file=${params.'File-Name'}"
+                                sh "terraform apply -auto-approve -var-file=${params.Varfile}"
                             } else if (params.'Terraform-Action' == 'destroy') {
-                                sh "terraform destroy -auto-approve -var-file=${params.'File-Name'}"
+                                sh "terraform destroy -auto-approve -var-file=${params.Varfile}"
                             } else {
                                 error "Invalid value for Terraform-Action: ${params.'Terraform-Action'}"
                             }
