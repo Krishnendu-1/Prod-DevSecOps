@@ -1,0 +1,3 @@
+# Contruction underway. 
+`IF U WANT TO UNDERSTAND THE PROJECT, GO & TRY TO UNDERSTAND BY YOURSELF`
+thanks :)

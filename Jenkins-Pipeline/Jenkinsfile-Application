@@ -1,0 +1,100 @@
+pipeline {
+    agent any
+    tools {
+        nodejs 'nodejs'
+    }
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+        DOCKER_IMAGE = 'your-dockerhub-username/welcome-node-app'
+        GIT_REPO_NAME = 'your-repo-name'
+        GIT_USER_NAME = 'your-github-username'
+        GIT_BRANCH = 'main'
+    }
+    stages {
+        stage('Cleaning Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('Checkout from Git') {
+            steps {
+                git branch: "${GIT_BRANCH}", url: "https://github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git"
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonar-scanner') {
+                    sh '''
+                        $SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectName=welcome-node-app \
+                        -Dsonar.projectKey=welcome-node-app \
+                        -Dsonar.sources=.
+                    '''
+                }
+            }
+        }
+        stage('Quality Check') {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+                }
+            }
+        }
+        stage('Installing Dependencies') {
+            steps {
+                sh 'npm install'
+            }
+        }
+        stage('OWASP Dependency-Check Scan') {
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        stage('Trivy File Scan') {
+            steps {
+                sh 'trivy fs . > trivyfs.txt'
+            }
+        }
+        stage('Docker Image Build') {
+            steps {
+                script {
+                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
+                }
+            }
+        }
+        stage('Trivy Image Scan') {
+            steps {
+                sh "trivy image ${DOCKER_IMAGE}:${BUILD_NUMBER} > trivyimage.txt"
+            }
+        }
+        stage('Docker Image Pushing') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
+        stage('Update Kubernetes Manifest') {
+            steps {
+                dir('k8s') {
+                    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                        sh '''
+                            git config user.email "your-email@example.com"
+                            git config user.name "${GIT_USER_NAME}"
+                            
+                            # Replace the image tag in deployment-service.yml with the current BUILD_NUMBER
+                            sed -i "s|${DOCKER_IMAGE}:.*|${DOCKER_IMAGE}:${BUILD_NUMBER}|g" deployment-service.yml
+                            
+                            git add deployment-service.yml
+                            git commit -m "ci: update deployment image to version ${BUILD_NUMBER} [skip ci]"
+                            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:${GIT_BRANCH}
+                        '''
+                    }
+                }
+            }
+        }
+    }
+}
